@@ -1,0 +1,9 @@
+The following maps have been created for Food access by the Public Health Autority of BC showing community organization providing food access, and United Way British Columbia showing the location of existing Food Hubs and partners.
+The data can be exported directly from GoogleMaps.
+
+PHABC Food Access Across BC
+https://www.google.com/maps/d/viewer?mid=1L_SJZ1yMvSL1GXa3avHsREm3AUcd5spn&ll=50.228884441898046%2C-122.53677996149207&z=8
+
+UWBC Existing Food Hubs
+https://www.google.com/maps/d/viewer?mid=1C7Fj50jHSHt-iSgjlsmj5B5ErLzwvUTR&ll=49.60417891908626%2C-122.06570942396881&z=8
+

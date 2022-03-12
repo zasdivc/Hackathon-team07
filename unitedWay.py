@@ -15,6 +15,7 @@ FOOD_HUB_MAX_CAPACITY = 500
 QUANTITY_PER_RIDE = 1
 TOTAL_BUDGET = 1_000
 DEBUG = True
+MAX_VALUE = 9_999
 
 populationData = {}
 distData = {}
@@ -56,13 +57,13 @@ def happinessStepFunction(averageFood):
 
 
 def getHappiness(foodHubId):
-    foodHubTotalFoodQuantity = 0
-    for j in range(NUM_OF_FARM):
-        foodHubTotalFoodQuantity += X[foodHubId, j]
+    return 1
+    # foodHubTotalFoodQuantity = sum([X[foodHubId, j]]
+    #                                for j in range(NUM_OF_FARM))
 
-    averageFood = foodHubTotalFoodQuantity/populationData[foodHubId]
-    happiness = happinessStepFunction(averageFood) * populationData[foodHubId]
-    return happiness
+    # averageFood = foodHubTotalFoodQuantity/populationData[foodHubId]
+    # happiness = happinessStepFunction(averageFood) * populationData[foodHubId]
+    # return happiness
 
 
 def getDistance(foodHubId, farmId):
@@ -94,15 +95,16 @@ for i in range(NUM_OF_FOOD_HUB):
               <= FOOD_HUB_MAX_CAPACITY)
 
 # include second constrain: total cost below total budge
+cost_relation = Model.NewIntVar(0, MAX_VALUE, "cost_relation")
 total_cost_function = 0
 for i in range(NUM_OF_FOOD_HUB):
     for j in range(NUM_OF_FARM):
-        total_cost_function += getSingleTripCost(
-            i, j) * (X[i, j] * (1/QUANTITY_PER_RIDE))
-Model.Add(total_cost_function <= TOTAL_BUDGET)
+        total_cost_function += getSingleTripCost(i, j) * X[i, j]
+Model.AddDivisionEquality(
+    cost_relation, total_cost_function, QUANTITY_PER_RIDE)
 
 objectFunction = sum(getHappiness(i) for i in range(NUM_OF_FOOD_HUB))
-Model.Maxmize(objectFunction)
+Model.Maximize(objectFunction)
 
 solver = cp_model.CpSolver()
 status = solver.Solve(Model)

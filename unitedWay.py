@@ -23,7 +23,7 @@ distData = {}
 if DEBUG:
     import random
     random.seed(10)
-    populationData = {i: random.randint(500, 1000)
+    populationData = {i: random.randint(50, 100)
                       for i in range(NUM_OF_FOOD_HUB)}
 
     for i in range(NUM_OF_FOOD_HUB):
@@ -110,9 +110,19 @@ for i in range(NUM_OF_FOOD_HUB):
 #     AverageFood[i] = Model.NewIntVar(
 #         0, MAX_VALUE, 'AverageFood[%d]' % i)
 # Model.AddDivisionEquality(AverageFood, TotalFood, LocalPopulation)
+HappinessStepHelper1 = {}
+# HappinessStepHelper2 = {}
+# HappinessStepHelper3 = {}
+
+for i in range(NUM_OF_FOOD_HUB):
+    HappinessStepHelper1[i] = Model.NewBoolVar(f'stepRegion1_{i}')
+    # HappinessStepHelper2[i] = Model.NewBoolVar(f'stepRegion2_{i}')
+    # HappinessStepHelper3[i] = Model.NewBoolVar(f'stepRegion3_{i}')
+
 TotalFood = {}
 LocalPopulation = {}
 AverageFood = {}
+
 for i in range(NUM_OF_FOOD_HUB):
     TotalFood[i] = Model.NewIntVar(
         0, MAX_VALUE, f'TotalFood[{i}]')
@@ -124,6 +134,12 @@ for i in range(NUM_OF_FOOD_HUB):
         0, MAX_VALUE, f'AverageFood[{i}]]')
     Model.AddDivisionEquality(AverageFood[i], TotalFood[i], LocalPopulation[i])
 
+    # step function
+    Model.Add(AverageFood[i] >= 1).OnlyEnforceIf(HappinessStepHelper1[i])
+    Model.Add(AverageFood[i] < 1).OnlyEnforceIf(HappinessStepHelper1[i].Not())
+    # Model.Add(AverageFood[i] >= 1).OnlyEnforceIf(HappinessStepHelper2[i].Not())
+    # Model.Add(AverageFood[i] >= 1).OnlyEnforceIf(HappinessStepHelper3[i].Not())
+
 
 # change happiness into a variable to make model work
 Happiness = {}
@@ -132,10 +148,13 @@ for i in range(NUM_OF_FOOD_HUB):
 
 # include third constrain - step function for happiness.
 for i in range(NUM_OF_FOOD_HUB):
-    Model.Add(Happiness[i] == 0).OnlyEnforceIf((AverageFood[i] < 1))
-    Model.Add(Happiness[i] == 5).OnlyEnforceIf(1 <= AverageFood[i] < 2)
-    Model.Add(Happiness[i] == 7).OnlyEnforceIf(2 <= AverageFood[i] < 3)
-    Model.Add(Happiness[i] == 8).OnlyEnforceIf(AverageFood[i] >= 3)
+    Model.Add(Happiness[i] == 5).OnlyEnforceIf(HappinessStepHelper1[i])
+    Model.Add(Happiness[i] == 0).OnlyEnforceIf(HappinessStepHelper1[i].Not())
+
+    # Model.Add(Happiness[i] == 0).OnlyEnforceIf((AverageFood[i] < 1))
+    # Model.Add(Happiness[i] == 5).OnlyEnforceIf(1 <= AverageFood[i] < 2)
+    # Model.Add(Happiness[i] == 7).OnlyEnforceIf(2 <= AverageFood[i] < 3)
+    # Model.Add(Happiness[i] == 8).OnlyEnforceIf(AverageFood[i] >= 3)
 
 # include first constrain: food hub has a capacity limit.
 for i in range(NUM_OF_FOOD_HUB):
@@ -143,7 +162,7 @@ for i in range(NUM_OF_FOOD_HUB):
               <= FOOD_HUB_MAX_CAPACITY)
 
 # include second constrain: total cost below total budge
-cost_relation = Model.NewIntVar(0, MAX_VALUE, "cost_relation")
+cost_relation = Model.NewIntVar(1, MAX_VALUE, "cost_relation")
 total_cost_function = 0
 for i in range(NUM_OF_FOOD_HUB):
     for j in range(NUM_OF_FARM):

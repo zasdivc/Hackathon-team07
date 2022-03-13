@@ -13,7 +13,7 @@ NUM_OF_FOOD_HUB = 10
 NUM_OF_FARM = 10
 FOOD_HUB_MAX_CAPACITY = 500
 QUANTITY_PER_RIDE = 1
-TOTAL_BUDGET = 1_000
+TOTAL_BUDGET = 10_000
 DEBUG = True
 MAX_VALUE = 9_999
 
@@ -35,35 +35,35 @@ if DEBUG:
 print("hummm")
 
 
-def happinessStepFunction(averageFood):
-    """
-    Here we use a step function to define people's
-    happiness. The idea is we encourage the model
-    to prioritize result-fairness (everyone get at 
-    least 1 food.) And discourage the model to 
-    concentrate food distribution to a convenient area.
+# def happinessStepFunction(averageFood):
+#     """
+#     Here we use a step function to define people's
+#     happiness. The idea is we encourage the model
+#     to prioritize result-fairness (everyone get at
+#     least 1 food.) And discourage the model to
+#     concentrate food distribution to a convenient area.
 
-    Note: The values here are adjustable for tunning.
-    """
-    floorAverageFood = math.floor(averageFood)
-    if floorAverageFood <= 0:
-        raise Exception("average food shall not be negative")
-    elif floorAverageFood == 1:
-        return 5
-    elif floorAverageFood == 2:
-        return 7
-    else:
-        return 8
+#     Note: The values here are adjustable for tunning.
+#     """
+#     floorAverageFood = math.floor(averageFood)
+#     if floorAverageFood <= 0:
+#         raise Exception("average food shall not be negative")
+#     elif floorAverageFood == 1:
+#         return 5
+#     elif floorAverageFood == 2:
+#         return 7
+#     else:
+#         return 8
 
 
-def getHappiness(foodHubId):
-    return 1
-    # foodHubTotalFoodQuantity = sum([X[foodHubId, j]]
-    #                                for j in range(NUM_OF_FARM))
+# def getHappiness(foodHubId):
+#     return 1
+# foodHubTotalFoodQuantity = sum([X[foodHubId, j]]
+#                                for j in range(NUM_OF_FARM))
 
-    # averageFood = foodHubTotalFoodQuantity/populationData[foodHubId]
-    # happiness = happinessStepFunction(averageFood) * populationData[foodHubId]
-    # return happiness
+# averageFood = foodHubTotalFoodQuantity/populationData[foodHubId]
+# happiness = happinessStepFunction(averageFood) * populationData[foodHubId]
+# return happiness
 
 
 def getDistance(foodHubId, farmId):
@@ -89,6 +89,40 @@ for i in range(NUM_OF_FOOD_HUB):
         X[i, j] = Model.NewIntVar(
             0, FOOD_HUB_MAX_CAPACITY, 'X[%d, %d]' % (i, j))
 
+# define an intermediate variable for the division relationship:
+# average food per population at certain food-hub i =
+# sum(X[i,j]) / population[i].
+
+TotalFood = {}
+for i in range(NUM_OF_FOOD_HUB):
+    TotalFood[i] = Model.NewIntVar(
+        0, MAX_VALUE, 'TotalFood[%d]' % i)
+    Model.Add(TotalFood[i] == sum([X[i, j] for j in range(NUM_OF_FARM)]))
+
+LocalPopulation = {}
+for i in range(NUM_OF_FOOD_HUB):
+    LocalPopulation[i] = Model.NewIntVar(
+        0, MAX_VALUE, 'LocalPopulation[%d]' % i)
+    Model.Add(LocalPopulation[i] == populationData[i])
+
+AverageFood = {}
+for i in range(NUM_OF_FOOD_HUB):
+    AverageFood[i] = Model.NewIntVar(
+        0, MAX_VALUE, 'AverageFood[%d]' % i)
+Model.AddDivisionEquality(AverageFood, TotalFood, LocalPopulation)
+
+# change happiness into a variable to make model work
+Happiness = {}
+for i in range(NUM_OF_FOOD_HUB):
+    Happiness[i] = Model.NewIntVar(0, 8, 'Happiness[%d]' % i)
+
+# include third constrain - step function for happiness.
+for i in range(NUM_OF_FOOD_HUB):
+    Model.Add(Happiness[i] == 0).OnlyEnforceIf(AverageFood[i] < 1)
+    Model.Add(Happiness[i] == 5).OnlyEnforceIf(1 <= AverageFood[i] < 2)
+    Model.Add(Happiness[i] == 7).OnlyEnforceIf(2 <= AverageFood[i] < 3)
+    Model.Add(Happiness[i] == 8).OnlyEnforceIf(AverageFood[i] >= 3)
+
 # include first constrain: food hub has a capacity limit.
 for i in range(NUM_OF_FOOD_HUB):
     Model.Add(sum([X[i, j] for j in range(NUM_OF_FARM)])
@@ -102,8 +136,9 @@ for i in range(NUM_OF_FOOD_HUB):
         total_cost_function += getSingleTripCost(i, j) * X[i, j]
 Model.AddDivisionEquality(
     cost_relation, total_cost_function, QUANTITY_PER_RIDE)
+Model.Add(cost_relation <= TOTAL_BUDGET)
 
-objectFunction = sum(getHappiness(i) for i in range(NUM_OF_FOOD_HUB))
+objectFunction = sum([Happiness[i] for i in range(NUM_OF_FOOD_HUB)])
 Model.Maximize(objectFunction)
 
 solver = cp_model.CpSolver()

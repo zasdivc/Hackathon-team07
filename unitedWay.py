@@ -12,10 +12,12 @@ from ortools.sat.python import cp_model
 NUM_OF_FOOD_HUB = 10
 NUM_OF_FARM = 10
 FOOD_HUB_MAX_CAPACITY = 500
-QUANTITY_PER_RIDE = 1
+QUANTITY_PER_RIDE = 100
 TOTAL_BUDGET = 10_000
 DEBUG = True
 MAX_VALUE = 9_999
+
+TOTAL_BUDGET_AFTER_REFACTOR = TOTAL_BUDGET  # * QUANTITY_PER_RIDE
 
 populationData = {}
 distData = {}
@@ -56,16 +58,6 @@ print("hummm")
 #         return 8
 
 
-# def getHappiness(foodHubId):
-#     return 1
-# foodHubTotalFoodQuantity = sum([X[foodHubId, j]]
-#                                for j in range(NUM_OF_FARM))
-
-# averageFood = foodHubTotalFoodQuantity/populationData[foodHubId]
-# happiness = happinessStepFunction(averageFood) * populationData[foodHubId]
-# return happiness
-
-
 def getDistance(foodHubId, farmId):
     # TODO: may shall call from api.
     return distData[(foodHubId, farmId)]
@@ -87,7 +79,7 @@ X = {}
 for i in range(NUM_OF_FOOD_HUB):
     for j in range(NUM_OF_FARM):
         X[i, j] = Model.NewIntVar(
-            0, FOOD_HUB_MAX_CAPACITY, 'X[%d, %d]' % (i, j))
+            0, FOOD_HUB_MAX_CAPACITY * 2, 'X[%d, %d]' % (i, j))
 
 # define an intermediate variable for the division relationship:
 # average food per population at certain food-hub i =
@@ -169,7 +161,7 @@ for i in range(NUM_OF_FOOD_HUB):
         total_cost_function += getSingleTripCost(i, j) * X[i, j]
 # Model.AddDivisionEquality(
 #     cost_relation, total_cost_function, QUANTITY_PER_RIDE)
-Model.Add(total_cost_function <= TOTAL_BUDGET)
+Model.Add(total_cost_function <= TOTAL_BUDGET_AFTER_REFACTOR)
 
 objectFunction = sum([Happiness[i] for i in range(NUM_OF_FOOD_HUB)])
 Model.Maximize(objectFunction)

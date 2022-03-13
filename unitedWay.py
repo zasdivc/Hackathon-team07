@@ -181,6 +181,15 @@ status = solver.Solve(Model)
 if status == cp_model.OPTIMAL or status == cp_model.FEASIBLE:
     for i in range(NUM_OF_FOOD_HUB):
         for j in range(NUM_OF_FARM):
-            print(f"X[{i}, {j}] = {solver.Value(X[i, j])}")
+            local_value = solver.Value(X[i, j])
+            if local_value != 0:
+                local_distance = getSingleTripCost(i, j)
+                print(f"X[{i}, {j}] = {local_value}")
+                print(f"correlated distance={local_distance}," +
+                      f"and cost={local_distance * local_value}")
+
+    totalHappiness = sum([solver.Value(Happiness[i])
+                         for i in range(NUM_OF_FOOD_HUB)])
+    print(f"Total happiness = {totalHappiness}, Budget = {TOTAL_BUDGET}")
 else:
     print("Unable to solve with the given setting.")

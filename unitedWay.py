@@ -128,7 +128,7 @@ for i in range(NUM_OF_FOOD_HUB):
         0, MAX_VALUE, f'TotalFood[{i}]')
     Model.Add(TotalFood[i] == sum([X[i, j] for j in range(NUM_OF_FARM)]))
     LocalPopulation[i] = Model.NewIntVar(
-        0, MAX_VALUE, f'LocalPopulation[{i}]')
+        1, MAX_VALUE, f'LocalPopulation[{i}]')
     Model.Add(LocalPopulation[i] == populationData[i])
     AverageFood[i] = Model.NewIntVar(
         0, MAX_VALUE, f'AverageFood[{i}]]')
@@ -162,14 +162,14 @@ for i in range(NUM_OF_FOOD_HUB):
               <= FOOD_HUB_MAX_CAPACITY)
 
 # include second constrain: total cost below total budge
-cost_relation = Model.NewIntVar(1, MAX_VALUE, "cost_relation")
+# cost_relation = Model.NewIntVar(1, MAX_VALUE, "cost_relation")
 total_cost_function = 0
 for i in range(NUM_OF_FOOD_HUB):
     for j in range(NUM_OF_FARM):
         total_cost_function += getSingleTripCost(i, j) * X[i, j]
-Model.AddDivisionEquality(
-    cost_relation, total_cost_function, QUANTITY_PER_RIDE)
-Model.Add(cost_relation <= TOTAL_BUDGET)
+# Model.AddDivisionEquality(
+#     cost_relation, total_cost_function, QUANTITY_PER_RIDE)
+Model.Add(total_cost_function <= TOTAL_BUDGET)
 
 objectFunction = sum([Happiness[i] for i in range(NUM_OF_FOOD_HUB)])
 Model.Maximize(objectFunction)

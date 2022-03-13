@@ -5,19 +5,20 @@ Assumptions:
 """
 
 import time
-import math
+import os
 from ortools.sat.python import cp_model
 
 
 NUM_OF_FOOD_HUB = 10
 NUM_OF_FARM = 10
-FOOD_HUB_MAX_CAPACITY = 500
+FOOD_HUB_MAX_CAPACITY = 50_000
 QUANTITY_PER_RIDE = 100
-TOTAL_BUDGET = 10_000
-DEBUG = True
-MAX_VALUE = 9_999
+TOTAL_BUDGET = 70_000
+DEBUG = False
+MAX_VALUE = 999_999
+FACTOR = 1  # 2
 
-TOTAL_BUDGET_AFTER_REFACTOR = TOTAL_BUDGET  # * QUANTITY_PER_RIDE
+TOTAL_BUDGET_AFTER_REFACTOR = TOTAL_BUDGET * QUANTITY_PER_RIDE * FACTOR
 
 populationData = {}
 distData = {}
@@ -34,7 +35,53 @@ if DEBUG:
             distData[(i, j)] = fakeDistance
             distData[(j, i)] = fakeDistance
 
+else:
+    import pandas as pd
+    # populating real distance data from csv.
+    dataFilePath = os.path.join(os.getcwd(), "distance.csv")
+    distance_df = pd.read_csv(dataFilePath, header=None)
+    distance_df.columns = ["farm_zip_code",
+                           "census", "meter_distance", "km_distance"]
+
+    farmList = distance_df['farm_zip_code'].unique()
+    farmToIndexMapping = {farmList[i]: i for i in range(len(farmList))}
+    indexToFarmMapping = {i: farmList[i] for i in range(len(farmList))}
+
+    censusList = distance_df['census'].unique()
+    censusToIndexMapping = {censusList[j]: j for j in range(len(censusList))}
+    indexToCensusMapping = {j: censusList[j] for j in range(len(censusList))}
+
+    distData = {}
+    for index, row in distance_df.iterrows():
+        farm_zip_code = row["farm_zip_code"]
+        census_name = row["census"]
+        km_distance = row["km_distance"]
+
+        farmIndex = farmToIndexMapping[farm_zip_code]
+        censusIndex = censusToIndexMapping[census_name]
+
+        distData[(farmIndex, censusIndex)] = km_distance
+        distData[(censusIndex, farmIndex)] = km_distance
+
+    # populating real population data from csv
+    populationFilePath = os.path.join(
+        os.getcwd(), "Food Hub Target Population New.csv")
+    populating_df = pd.read_csv(populationFilePath, index_col=None)
+    populating_df = populating_df[["census_name", "population"]]
+
+    populationData = {}
+
+    for index, row in populating_df.iterrows():
+        census_name = row["census_name"]
+        population = row['population']
+
+        # print(f"census_name = {census_name}, population = {population}")
+        censusIndex = censusToIndexMapping[census_name]
+        populationData[censusIndex] = int(population)
+
 print("Solving food hub logistics!")
+print("populationData:", populationData)
+print("distData:", distData, "\n")
 
 # def happinessStepFunction(averageFood):
 #     """
@@ -165,11 +212,14 @@ if status == cp_model.OPTIMAL or status == cp_model.FEASIBLE:
             if local_value != 0:
                 print(f"X[{i}, {j}] = {local_value}")
                 local_distance = getSingleTripCost(i, j)
+                print(
+                    f"hub {i}: {indexToCensusMapping[i]} shall buy from farm {indexToFarmMapping[j]}")
                 print(f"correlated distance={local_distance}," +
-                      f"and cost={local_distance * local_value}")
+                      f"and cost={local_distance * local_value}\n")
 
     totalHappiness = sum([solver.Value(Happiness[i])
                          for i in range(NUM_OF_FOOD_HUB)])
+    print("Total cost = ", solver.Value(total_cost_function)/QUANTITY_PER_RIDE)
     print(f"Total happiness = {totalHappiness}, Budget = {TOTAL_BUDGET}")
 else:
     print("Unable to solve with the given setting.")

@@ -19,7 +19,7 @@ def getDist() -> List:
     # only for test purpose
     # sources.append('V5X 0H3')
     # destinations.append('410 West Georgia')
-    gmaps = googlemaps.Client(key='AIzaSyAZZA1rMR-mwPGQ6w-y-mmVJuDPNNNb2Mo')
+    gmaps = googlemaps.Client(key='put your api-key here :-)') 
     matrix = gmaps.distance_matrix(sources, destinations)
     dist_matrix = []
     for i, source in enumerate(sources):

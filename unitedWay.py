@@ -102,14 +102,24 @@ for i in range(NUM_OF_FOOD_HUB):
 #     AverageFood[i] = Model.NewIntVar(
 #         0, MAX_VALUE, 'AverageFood[%d]' % i)
 # Model.AddDivisionEquality(AverageFood, TotalFood, LocalPopulation)
+
+
+# change happiness into a variable to make model work
+Happiness = {}
+for i in range(NUM_OF_FOOD_HUB):
+    Happiness[i] = Model.NewIntVar(0, 8, f'Happiness[{i}]]')
+
+
+HappinessStepHelper0 = {}
 HappinessStepHelper1 = {}
-# HappinessStepHelper2 = {}
-# HappinessStepHelper3 = {}
+HappinessStepHelper2 = {}
+HappinessStepHelper3 = {}
 
 for i in range(NUM_OF_FOOD_HUB):
-    HappinessStepHelper1[i] = Model.NewBoolVar(f'stepRegion1_{i}')
-    # HappinessStepHelper2[i] = Model.NewBoolVar(f'stepRegion2_{i}')
-    # HappinessStepHelper3[i] = Model.NewBoolVar(f'stepRegion3_{i}')
+    HappinessStepHelper0[i] = Model.NewBoolVar(f'stepHelper0_{i}')
+    HappinessStepHelper1[i] = Model.NewBoolVar(f'stepHelper1_{i}')
+    HappinessStepHelper2[i] = Model.NewBoolVar(f'stepHelper2_{i}')
+    HappinessStepHelper3[i] = Model.NewBoolVar(f'stepHelper3_{i}')
 
 TotalFood = {}
 LocalPopulation = {}
@@ -126,22 +136,35 @@ for i in range(NUM_OF_FOOD_HUB):
         0, MAX_VALUE, f'AverageFood[{i}]]')
     Model.AddDivisionEquality(AverageFood[i], TotalFood[i], LocalPopulation[i])
 
-    # step function
-    Model.Add(AverageFood[i] >= 1).OnlyEnforceIf(HappinessStepHelper1[i])
-    Model.Add(AverageFood[i] < 1).OnlyEnforceIf(HappinessStepHelper1[i].Not())
+    # step function,
+    # HappinessStepHelper1[i] iff average[i] \in
+    Model.Add(AverageFood[i] == 0).OnlyEnforceIf(HappinessStepHelper0[i]) # if average food = 0, set HappinessStepHelper0 = true
+    Model.Add(Happiness[i] == 0).OnlyEnforceIf(HappinessStepHelper0[i]) # if HappinessStepHelper0 = true, set Happiness = 0
+
+    Model.Add(AverageFood[i] == 1).OnlyEnforceIf(HappinessStepHelper1[i])
+    Model.Add(Happiness[i] == 5).OnlyEnforceIf(HappinessStepHelper1[i])
+
+    Model.Add(AverageFood[i] == 2).OnlyEnforceIf(HappinessStepHelper2[i])
+    Model.Add(Happiness[i] == 7).OnlyEnforceIf(HappinessStepHelper2[i])
+
+    Model.Add(AverageFood[i] >= 3).OnlyEnforceIf(HappinessStepHelper3[i])
+    Model.Add(Happiness[i] == 8).OnlyEnforceIf(HappinessStepHelper3[i])
+
+    Model.Add(HappinessStepHelper0[i] + HappinessStepHelper1[i] +
+              HappinessStepHelper2[i] + HappinessStepHelper3[i] == 1)
+    # Model.AddLinearExpressionInDomain(
+    #     AverageFood[i], cp_model.Domain.FromIntervals([(0, 1)])).OnlyEnforceIf(HappinessStepHelper1[i])
+
+    # Model.Add(AverageFood[i] >= 1).OnlyEnforceIf(HappinessStepHelper1[i])
+    # Model.Add(AverageFood[i] < 1).OnlyEnforceIf(HappinessStepHelper1[i].Not())
     # Model.Add(AverageFood[i] >= 1).OnlyEnforceIf(HappinessStepHelper2[i].Not())
     # Model.Add(AverageFood[i] >= 1).OnlyEnforceIf(HappinessStepHelper3[i].Not())
 
 
-# change happiness into a variable to make model work
-Happiness = {}
-for i in range(NUM_OF_FOOD_HUB):
-    Happiness[i] = Model.NewIntVar(0, 8, f'Happiness[{i}]]')
-
 # include third constrain - step function for happiness.
-for i in range(NUM_OF_FOOD_HUB):
-    Model.Add(Happiness[i] == 5).OnlyEnforceIf(HappinessStepHelper1[i])
-    Model.Add(Happiness[i] == 0).OnlyEnforceIf(HappinessStepHelper1[i].Not())
+# for i in range(NUM_OF_FOOD_HUB):
+#     Model.Add(Happiness[i] == 5).OnlyEnforceIf(HappinessStepHelper1[i])
+#     Model.Add(Happiness[i] == 0).OnlyEnforceIf(HappinessStepHelper1[i].Not())
 
     # Model.Add(Happiness[i] == 0).OnlyEnforceIf((AverageFood[i] < 1))
     # Model.Add(Happiness[i] == 5).OnlyEnforceIf(1 <= AverageFood[i] < 2)
@@ -175,8 +198,8 @@ if status == cp_model.OPTIMAL or status == cp_model.FEASIBLE:
         for j in range(NUM_OF_FARM):
             local_value = solver.Value(X[i, j])
             if local_value != 0:
-                local_distance = getSingleTripCost(i, j)
                 print(f"X[{i}, {j}] = {local_value}")
+                local_distance = getSingleTripCost(i, j)
                 print(f"correlated distance={local_distance}," +
                       f"and cost={local_distance * local_value}")
 

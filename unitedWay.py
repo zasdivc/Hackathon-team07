@@ -93,32 +93,46 @@ for i in range(NUM_OF_FOOD_HUB):
 # average food per population at certain food-hub i =
 # sum(X[i,j]) / population[i].
 
+# TotalFood = {}
+# for i in range(NUM_OF_FOOD_HUB):
+#     TotalFood[i] = Model.NewIntVar(
+#         0, MAX_VALUE, 'TotalFood[%d]' % i)
+#     Model.Add(TotalFood[i] == sum([X[i, j] for j in range(NUM_OF_FARM)]))
+
+# LocalPopulation = {}
+# for i in range(NUM_OF_FOOD_HUB):
+#     LocalPopulation[i] = Model.NewIntVar(
+#         0, MAX_VALUE, 'LocalPopulation[%d]' % i)
+#     Model.Add(LocalPopulation[i] == populationData[i])
+
+# AverageFood = {}
+# for i in range(NUM_OF_FOOD_HUB):
+#     AverageFood[i] = Model.NewIntVar(
+#         0, MAX_VALUE, 'AverageFood[%d]' % i)
+# Model.AddDivisionEquality(AverageFood, TotalFood, LocalPopulation)
 TotalFood = {}
-for i in range(NUM_OF_FOOD_HUB):
-    TotalFood[i] = Model.NewIntVar(
-        0, MAX_VALUE, 'TotalFood[%d]' % i)
-    Model.Add(TotalFood[i] == sum([X[i, j] for j in range(NUM_OF_FARM)]))
-
 LocalPopulation = {}
-for i in range(NUM_OF_FOOD_HUB):
-    LocalPopulation[i] = Model.NewIntVar(
-        0, MAX_VALUE, 'LocalPopulation[%d]' % i)
-    Model.Add(LocalPopulation[i] == populationData[i])
-
 AverageFood = {}
 for i in range(NUM_OF_FOOD_HUB):
+    TotalFood[i] = Model.NewIntVar(
+        0, MAX_VALUE, f'TotalFood[{i}]')
+    Model.Add(TotalFood[i] == sum([X[i, j] for j in range(NUM_OF_FARM)]))
+    LocalPopulation[i] = Model.NewIntVar(
+        0, MAX_VALUE, f'LocalPopulation[{i}]')
+    Model.Add(LocalPopulation[i] == populationData[i])
     AverageFood[i] = Model.NewIntVar(
-        0, MAX_VALUE, 'AverageFood[%d]' % i)
-Model.AddDivisionEquality(AverageFood, TotalFood, LocalPopulation)
+        0, MAX_VALUE, f'AverageFood[{i}]]')
+    Model.AddDivisionEquality(AverageFood[i], TotalFood[i], LocalPopulation[i])
+
 
 # change happiness into a variable to make model work
 Happiness = {}
 for i in range(NUM_OF_FOOD_HUB):
-    Happiness[i] = Model.NewIntVar(0, 8, 'Happiness[%d]' % i)
+    Happiness[i] = Model.NewIntVar(0, 8, f'Happiness[{i}]]')
 
 # include third constrain - step function for happiness.
 for i in range(NUM_OF_FOOD_HUB):
-    Model.Add(Happiness[i] == 0).OnlyEnforceIf(AverageFood[i] < 1)
+    Model.Add(Happiness[i] == 0).OnlyEnforceIf((AverageFood[i] < 1))
     Model.Add(Happiness[i] == 5).OnlyEnforceIf(1 <= AverageFood[i] < 2)
     Model.Add(Happiness[i] == 7).OnlyEnforceIf(2 <= AverageFood[i] < 3)
     Model.Add(Happiness[i] == 8).OnlyEnforceIf(AverageFood[i] >= 3)
